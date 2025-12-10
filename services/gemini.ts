@@ -1,9 +1,6 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { VocabularyItem } from "../types";
 
-// Force TypeScript to recognize process.env for the build
-declare const process: any;
-
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Audio Context Singleton

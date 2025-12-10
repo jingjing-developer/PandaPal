@@ -21,10 +21,14 @@ function App() {
   const [lastScore, setLastScore] = useState(0);
 
   const handleSelectLevel = async (level: LevelConfig) => {
-    // Initialize Audio Context on user gesture
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') {
-        ctx.resume();
+    // Initialize Audio Context on user gesture (Essential for Mobile)
+    try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') {
+            await ctx.resume();
+        }
+    } catch (e) {
+        console.error("Audio Context Start Error", e);
     }
 
     setCurrentLevel(level);
@@ -55,16 +59,17 @@ function App() {
   };
 
   return (
-    <div className="h-screen w-full overflow-hidden bg-yellow-50 relative font-sans selection:bg-yellow-200">
+    // Fixed inset-0 ensures full coverage on mobile without scrolling issues
+    <div className="fixed inset-0 w-full h-full overflow-hidden bg-yellow-50 font-sans selection:bg-yellow-200">
         
         {/* Background Decor */}
-        <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden z-0">
+        <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden z-0">
              <div className="absolute top-10 left-10 text-6xl opacity-10 animate-float">☁️</div>
              <div className="absolute top-40 right-20 text-4xl opacity-10 animate-float" style={{ animationDelay: '1s' }}>☁️</div>
              <div className="absolute bottom-20 left-1/4 text-8xl opacity-5 animate-spin" style={{ animationDuration: '20s' }}>☀️</div>
         </div>
 
-        <div className="relative z-10 h-full">
+        <div className="relative z-10 h-full w-full">
             {state === AppState.MENU && (
                 <Menu levels={LEVELS} onSelectLevel={handleSelectLevel} totalXP={totalXP} />
             )}

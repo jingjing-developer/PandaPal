@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { VocabularyItem, ChallengeType, GameChallenge, AudioCache } from '../types';
 import { generateSpeech, playAudioBuffer } from '../services/gemini';
 
@@ -70,6 +70,7 @@ export const GameSession: React.FC<GameSessionProps> = ({ items, onComplete, onE
   };
 
   // Auto-play audio when entering a new step if it's LEARN or LISTEN type
+  // Use a ref to ensure it only fires once per step change
   useEffect(() => {
     if (!currentChallenge) return;
     
@@ -79,13 +80,13 @@ export const GameSession: React.FC<GameSessionProps> = ({ items, onComplete, onE
 
     const wordToPlay = currentChallenge.target.word;
     
-    // Small delay for smooth transition
+    // Small delay for smooth transition and ensure view is ready
     const timer = setTimeout(() => {
         playWord(wordToPlay);
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [currentStep, currentChallenge]);
+  }, [currentStep]); // Only re-run when step index changes
 
 
   // --- Interactions ---
@@ -106,15 +107,17 @@ export const GameSession: React.FC<GameSessionProps> = ({ items, onComplete, onE
     setIsCorrect(correct);
 
     if (correct) {
-        // Play the word again as reinforcement
-        playWord(option.word);
+        // Success Logic
         setCombo(c => c + 1);
         setScore(s => s + 10 + combo * 2);
+        
+        // Removed playWord(option.word) here to prevent playing it "twice"
+        // The user has already heard it at the start of the card.
         
         // Auto advance after short delay
         setTimeout(() => {
             handleNext();
-        }, 1500);
+        }, 1200);
     } else {
         setCombo(0);
         // Error sound effect placeholder (shake animation handles visual)
@@ -137,7 +140,7 @@ export const GameSession: React.FC<GameSessionProps> = ({ items, onComplete, onE
   // --- Renderers ---
 
   const renderLearnPhase = () => (
-    <div className="flex flex-col items-center animate-pop w-full max-w-sm">
+    <div className="flex flex-col items-center animate-pop w-full max-w-sm px-4">
         <div className="text-gray-500 font-bold mb-4 uppercase tracking-wider">Learn (学习)</div>
         
         <div className="bg-white rounded-3xl shadow-xl p-8 w-full flex flex-col items-center border-b-8 border-gray-100 relative overflow-hidden">
@@ -153,7 +156,8 @@ export const GameSession: React.FC<GameSessionProps> = ({ items, onComplete, onE
 
             <button 
                 onClick={() => playWord(currentChallenge.target.word)}
-                className={`p-4 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-200 transition-all transform hover:scale-110 ${isAudioLoading ? 'animate-pulse' : ''}`}
+                className={`p-4 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-200 transition-all transform hover:scale-110 active:scale-95 ${isAudioLoading ? 'animate-pulse' : ''}`}
+                title="Play Pronunciation"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-10 h-10">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
@@ -163,7 +167,7 @@ export const GameSession: React.FC<GameSessionProps> = ({ items, onComplete, onE
 
         <button 
             onClick={handleNext}
-            className="mt-8 w-full py-4 rounded-2xl font-black text-xl text-white shadow-lg btn-press flex items-center justify-center gap-2"
+            className="mt-8 w-full py-4 rounded-2xl font-black text-xl text-white shadow-lg btn-press flex items-center justify-center gap-2 touch-manipulation"
             style={{ backgroundColor: color, borderColor: 'rgba(0,0,0,0.2)' }}
         >
             <span>I Know It! (懂了)</span>
@@ -177,7 +181,7 @@ export const GameSession: React.FC<GameSessionProps> = ({ items, onComplete, onE
     const title = isListenMode ? "Listen & Find (听音找词)" : "What is this? (这是什么?)";
 
     return (
-        <div className="flex flex-col items-center w-full max-w-sm">
+        <div className="flex flex-col items-center w-full max-w-sm px-4">
             
             {/* Question Area */}
             <div className="mb-6 text-center animate-pop w-full">
@@ -230,15 +234,15 @@ export const GameSession: React.FC<GameSessionProps> = ({ items, onComplete, onE
                             className={`
                                 relative p-3 rounded-2xl font-bold text-xl shadow-sm border-b-4
                                 flex flex-col items-center justify-center gap-1 aspect-square
-                                transition-all duration-200 active:scale-95
+                                transition-all duration-200 active:scale-95 touch-manipulation
                                 ${stateStyles}
                             `}
                         >
                             <span className="text-4xl drop-shadow-sm mb-1">{opt.emoji}</span>
                             <span className="text-sm font-normal text-gray-500">{opt.translation}</span>
                             
-                            {/* In Listen mode, show faded English to help reading mapping. In Read mode, the English is the prompt, so we hide it here or keep it for reinforcement. Keeping it small is good. */}
-                            <span className="text-xs opacity-40 font-bold">{opt.word.length > 10 ? opt.word.substring(0, 10) + '...' : opt.word}</span>
+                            {/* In Listen mode, show faded English to help reading mapping. */}
+                            <span className="text-xs opacity-40 font-bold truncate max-w-full px-1">{opt.word}</span>
                             
                             {icon && <div className="absolute top-2 right-2 text-xl">{icon}</div>}
                         </button>
@@ -253,7 +257,7 @@ export const GameSession: React.FC<GameSessionProps> = ({ items, onComplete, onE
     <div className="h-full w-full flex flex-col items-center pt-4 relative">
         {/* Top Bar */}
         <div className="w-full max-w-md px-4 flex justify-between items-center mb-4">
-            <button onClick={onExit} className="text-gray-400 hover:text-gray-600 font-bold bg-white px-3 py-1 rounded-full shadow-sm text-sm">
+            <button onClick={onExit} className="text-gray-400 hover:text-gray-600 font-bold bg-white px-3 py-1 rounded-full shadow-sm text-sm border border-gray-100">
                 ✕ Exit
             </button>
             <div className="flex gap-2">
