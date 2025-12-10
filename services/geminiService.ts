@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { VocabularyItem } from "../types";
 
-// Ensure process.env.API_KEY is treated as a string to avoid TS errors
+// Ensure process.env.API_KEY || 'FAKE_API_KEY_FOR_DEVELOPMENT' is treated as a string to avoid TS errors
 const apiKey = process.env.API_KEY || "";
 const ai = new GoogleGenAI({ apiKey });
 
