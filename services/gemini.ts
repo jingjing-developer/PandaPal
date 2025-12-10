@@ -1,7 +1,9 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { VocabularyItem } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Ensure process.env.API_KEY is treated as a string to avoid TS errors
+const apiKey = process.env.API_KEY || "";
+const ai = new GoogleGenAI({ apiKey });
 
 // Audio Context Singleton
 let audioContext: AudioContext | null = null;
@@ -60,12 +62,18 @@ export const generateLessonContent = async (topic: string): Promise<VocabularyIt
       }
     });
 
-    const text = response.text;
+    let text = response.text;
     if (!text) return [];
+
+    // Clean up Markdown if present (fixes parsing errors)
+    if (text.startsWith("```json")) {
+        text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+    }
+    
     return JSON.parse(text) as VocabularyItem[];
   } catch (e) {
     console.error("Gemini Error:", e);
-    return []; // Return empty to handle gracefully
+    throw e; // Throw so UI knows it failed
   }
 };
 

@@ -34,15 +34,20 @@ function App() {
     setCurrentLevel(level);
     setState(AppState.LOADING);
     
-    // Generate content
-    const items = await generateLessonContent(level.topicPrompt);
-    
-    if (items.length > 0) {
-        setVocabList(items);
-        setState(AppState.GAME);
-    } else {
+    try {
+        // Generate content
+        const items = await generateLessonContent(level.topicPrompt);
+        
+        if (items && items.length > 0) {
+            setVocabList(items);
+            setState(AppState.GAME);
+        } else {
+            throw new Error("No items generated");
+        }
+    } catch (e: any) {
+        console.error(e);
         setState(AppState.MENU);
-        alert("Ops! Could not load the game. Please try again.");
+        alert(`Opps! Could not load the game.\nError: ${e.message || "Unknown error"}\nPlease try again!`);
     }
   };
 
@@ -60,7 +65,7 @@ function App() {
 
   return (
     // Fixed inset-0 ensures full coverage on mobile without scrolling issues
-    <div className="fixed inset-0 w-full h-full overflow-hidden bg-yellow-50 font-sans selection:bg-yellow-200">
+    <div className="fixed inset-0 w-full h-full overflow-hidden bg-yellow-50 font-sans selection:bg-yellow-200 touch-none">
         
         {/* Background Decor */}
         <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden z-0">
